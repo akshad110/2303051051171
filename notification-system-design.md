@@ -508,3 +508,18 @@ function notify_all(student_ids, message):
 
 This approach ensures every notification is stored safely, and failed emails can be retried without losing data.
 
+# Stage 6
+
+To implement the Priority Inbox, notifications are fetched from the Notification API and assigned a priority score based on their type.
+
+Priority Order:
+
+- Placement (Highest)
+- Result
+- Event (Lowest)
+
+If two notifications have the same priority, the most recent notification is ranked higher.
+
+The notifications are sorted by priority and timestamp, and the top 10 notifications are returned.
+
+To efficiently maintain the top 10 as new notifications arrive, a priority queue (max heap) can be used, allowing insertion and retrieval in O(log n) time.
