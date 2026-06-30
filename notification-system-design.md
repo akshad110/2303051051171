@@ -475,3 +475,36 @@ Fetching notifications on every page load increases database load and slows the 
 
 Use **MongoDB + Redis**, **WebSockets** for real-time updates, **pagination**, and **proper indexing** to achieve a scalable and efficient notification system.
 
+# Stage 5
+## Reliable Notification Delivery
+
+## Shortcomings
+
+- Processing 50,000 students one by one is slow.
+- If email sending fails midway, some students receive notifications while others don't.
+- Email, database, and in-app notifications are tightly coupled, making recovery difficult.
+
+## Better Approach
+
+- Save the notification to the database first.
+- Add email and in-app notification tasks to a message queue.
+- Worker services process the queue independently.
+- If email delivery fails, retry only the failed emails without affecting other notifications.
+
+## Why?
+
+Saving to the database and sending emails should not happen together. The database should always store the notification, while email delivery can happen asynchronously. This makes the system faster, more reliable, and easier to recover from failures.
+
+## Revised Pseudocode
+
+```text
+function notify_all(student_ids, message):
+
+    for student_id in student_ids:
+        save_to_db(student_id, message)
+        queue_email(student_id, message)
+        queue_push_notification(student_id, message)
+```
+
+This approach ensures every notification is stored safely, and failed emails can be retried without losing data.
+
