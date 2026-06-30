@@ -334,3 +334,122 @@ Store unread counts and recent notifications in Redis to reduce database queries
 ### 3. Pagination
 
 Retrieve notifications in pages instead of loading all records.
+
+
+# Stage 3
+##  SQL query Oprimization
+
+## Given Query
+
+```sql
+SELECT *
+FROM notifications
+WHERE studentID = 1042
+  AND isRead = false
+ORDER BY createdAt ASC;
+```
+
+## Is the Query Accurate?
+
+Yes. The query correctly retrieves all unread notifications for the specified student and sorts them by creation time in ascending order.
+
+However, as the database has grown to approximately **50,000 students** and **5,000,000 notifications**, the query may become slow if appropriate indexes are not present.
+
+## Why is the Query Slow?
+
+Several factors can contribute to poor performance:
+
+- The database may perform a full table scan to locate matching records.
+- Sorting (`ORDER BY createdAt`) requires additional processing if no suitable index exists.
+- Using `SELECT *` retrieves all columns, increasing disk I/O and network usage.
+- With millions of records, scanning and sorting become expensive.
+
+
+## Recommended Improvements
+
+### 1. Retrieve Only Required Columns
+
+Instead of:
+
+```sql
+SELECT *
+```
+Retrieve only the required fields.
+
+```sql
+SELECT id,
+       title,
+       message,
+       createdAt
+FROM notifications
+WHERE studentID = 1042
+  AND isRead = false
+ORDER BY createdAt ASC;
+```
+
+This reduces memory usage, disk reads, and network traffic.
+
+## Expected Computational Cost
+
+### Without Index
+
+```
+Filtering: O(N)
+
+Sorting: O(K log K)
+
+Overall:
+O(N + K log K)
+```
+
+Where:
+
+- **N** = total notifications
+- **K** = notifications belonging to the student
+
+
+## Should We Add Indexes on Every Column?
+
+No.
+
+Adding indexes on every column is not recommended.
+
+### Reasons
+
+- Increased storage requirements
+- Slower INSERT operations
+- Slower UPDATE operations
+- Slower DELETE operations
+- Additional maintenance overhead
+
+Indexes should only be created on columns that are frequently used in:
+
+- WHERE clauses
+- JOIN conditions
+- ORDER BY clauses
+- GROUP BY clauses
+
+For this table, suitable indexes include:
+
+```sql
+studentID
+(studentID, isRead, createdAt)
+notificationType
+createdAt
+```
+
+## Query: Students Who Received Placement Notifications in the Last 7 Days
+
+```sql
+SELECT DISTINCT studentID
+FROM notifications
+WHERE notificationType = 'Placement'
+  AND createdAt >= CURRENT_DATE - INTERVAL 7 DAY;
+```
+
+## Suggested Additional Index
+
+```sql
+CREATE INDEX idx_notifications_type_created
+ON notifications(notificationType, createdAt);
+```
