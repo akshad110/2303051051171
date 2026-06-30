@@ -453,3 +453,25 @@ WHERE notificationType = 'Placement'
 CREATE INDEX idx_notifications_type_created
 ON notifications(notificationType, createdAt);
 ```
+
+# Stage 4 
+## Performance Optimization
+
+Fetching notifications on every page load increases database load and slows the application. To improve performance:
+
+- **Redis Cache:** Store recent notifications and unread counts for faster access.
+- **Pagination:** Fetch notifications in small batches (e.g., 20 per request).
+- **WebSockets:** Push new notifications in real time instead of frequent polling.
+- **Indexing:** Add indexes on `studentID`, `isRead`, and `createdAt` for faster queries.
+
+### Tradeoffs
+
+- **Redis:** Faster reads but requires cache synchronization.
+- **Pagination:** Reduces data transfer but needs multiple requests for older data.
+- **WebSockets:** Real-time updates but maintains persistent connections.
+- **Indexing:** Faster reads but slightly slower writes.
+
+### Recommended Solution
+
+Use **MongoDB + Redis**, **WebSockets** for real-time updates, **pagination**, and **proper indexing** to achieve a scalable and efficient notification system.
+
