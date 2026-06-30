@@ -191,3 +191,146 @@ Accept: application/json
 - Notifications are persisted in a database.
 - WebSocket connections are established after the user accesses the application.
 - API versioning follows `/api/v1`.
+
+
+# Stage 2
+## Database Choice
+I propose using **MongoDB** as the primary database and **Redis** as the caching layer.
+MongoDB is well suited for a notification system because:
+
+- It stores data in flexible JSON-like documents (BSON).
+- Notification data has a simple structure and may evolve over time.
+- It provides high write throughput, which is important since notifications are generated frequently.
+- It supports horizontal scaling through sharding.
+- It offers efficient indexing for fast retrieval of user-specific notifications.
+
+
+## Notifications Collection
+
+```json
+{
+  "_id": "ObjectId",
+  "userId": "U001",
+  "title": "Interview Scheduled",
+  "message": "Your interview is scheduled for tomorrow.",
+  "type": "system",
+  "isRead": false,
+  "createdAt": "2026-06-30T10:30:00Z",
+  "updatedAt": "2026-06-30T10:30:00Z"
+}
+```
+
+# MongoDB Queries
+
+## Create Notification
+
+```javascript
+db.notifications.insertOne({
+    userId: "U001",
+    title: "Order Confirmed",
+    message: "Your order has been confirmed.",
+    type: "order",
+    isRead: false,
+    createdAt: new Date(),
+    updatedAt: new Date()
+})
+```
+
+## Get All Notifications
+
+```javascript
+db.notifications.find({
+    userId: "U001"
+}).sort({
+    createdAt: -1
+})
+```
+
+
+## Get Notification by ID
+
+```javascript
+db.notifications.findOne({
+    _id: ObjectId("notificationId")
+})
+```
+
+
+## Mark Notification as Read
+
+```javascript
+db.notifications.updateOne(
+{
+    _id: ObjectId("notificationId")
+},
+{
+    $set: {
+        isRead: true,
+        updatedAt: new Date()
+    }
+})
+```
+## Mark All Notifications as Read
+
+```javascript
+db.notifications.updateMany(
+{
+    userId: "U001",
+    isRead: false
+},
+{
+    $set: {
+        isRead: true,
+        updatedAt: new Date()
+    }
+})
+
+```
+
+
+## Delete Notification
+
+```javascript
+db.notifications.deleteOne({
+    _id: ObjectId("notificationId")
+})
+```
+
+## Count Unread Notifications
+
+```javascript
+db.notifications.countDocuments({
+    userId: "U001",
+    isRead: false
+})
+```
+
+# Challenges with Increasing Data Volume
+
+As the number of users and notifications grows, several challenges may arise:
+
+- Large notification collections
+- Slower query execution
+- Increased database load
+- Higher storage requirements
+- Increased response times
+
+# Solutions
+
+### 1. Indexing
+
+Create indexes on:
+
+- userId
+- isRead
+- createdAt
+
+to speed up searches.
+
+### 2. Redis Caching
+
+Store unread counts and recent notifications in Redis to reduce database queries.
+
+### 3. Pagination
+
+Retrieve notifications in pages instead of loading all records.
